@@ -1,0 +1,30 @@
+{
+  "name": "linkedin_post_scraper",
+  "version": "1.0.0",
+  "description": "Scrape recent posts from LinkedIn profiles",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "api": "node src/server.js",
+    "import:profiles": "node src/scripts/importProfiles.js",
+    "chrome:login": "node src/scripts/chromeLogin.js",
+    "preflight": "node src/scripts/preflight.js",
+    "test": "node --test \"test/*.test.js\"",
+    "check": "node --check src/index.js && node --check src/server.js && node --check src/database/supabaseService.js && node --check src/scripts/pipeline.js && node --check src/scripts/importProfiles.js && node --check src/scripts/csvImport.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "groq-sdk": "^1.5.0",
+    "multer": "^2.2.0",
+    "playwright": "^1.61.1",
+    "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
