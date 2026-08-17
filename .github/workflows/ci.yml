@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (tests, checks, audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Linkedin-Scraper
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Linkedin-Scraper/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: UI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: UI/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+  deploy-scripts:
+    name: Deploy scripts (syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        run: bash -n deploy/deploy.sh deploy/provision.sh
+
+      - name: Validate systemd units
+        run: systemd-analyze verify deploy/linkedin-api.service deploy/linkedin-worker.service deploy/linkedin-worker.timer

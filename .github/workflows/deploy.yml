@@ -1,0 +1,92 @@
+name: Deploy
+
+# Deploys to the production VM on every push to main.
+# Required GitHub secrets:
+#   VM_HOST          - VM public IP or hostname
+#   VM_USER          - SSH user with passwordless sudo (e.g. ubuntu)
+#   SSH_PRIVATE_KEY  - private key for the deploy user (no passphrase)
+#   SSH_KNOWN_HOSTS  - known_hosts line for VM_HOST (prevents MITM)
+#   ENV_FILE         - full .env contents for the VM (see .env.example)
+#   SITE_DOMAIN      - public domain for the UI (optional)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare SSH credentials
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          echo "$SSH_KNOWN_HOSTS" > /tmp/known_hosts
+          chmod 600 /tmp/known_hosts
+
+      - name: Create release directory
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          SHA="${GITHUB_SHA:0:12}"
+          ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts \
+            "$VM_USER@$VM_HOST" \
+            "sudo mkdir -p /opt/linkedin/releases/$SHA && sudo chown -R linkedin:linkedin /opt/linkedin/releases/$SHA"
+
+      - name: Sync repository
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          SHA="${GITHUB_SHA:0:12}"
+          rsync -e "ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts" \
+            --rsync-path="sudo rsync" \
+            -az --delete \
+            --exclude .git \
+            --exclude node_modules \
+            --exclude dist \
+            --exclude .chrome-profile \
+            --exclude .env \
+            ./ "$VM_USER@$VM_HOST:/opt/linkedin/releases/$SHA/"
+
+      - name: Write environment file
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+        run: |
+          printf '%s\n' "SITE_DOMAIN=$SITE_DOMAIN" "$ENV_FILE" | \
+            ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts \
+            "$VM_USER@$VM_HOST" \
+            "sudo tee /opt/linkedin/.env > /dev/null && sudo chmod 600 /opt/linkedin/.env"
+
+      - name: Run deploy script
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          SHA="${GITHUB_SHA:0:12}"
+          ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts \
+            "$VM_USER@$VM_HOST" \
+            "sudo /opt/linkedin/releases/$SHA/deploy/deploy.sh $SHA"
+
+      - name: Public smoke test
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          SITE_DOMAIN: ${{ secrets.SITE_DOMAIN }}
+        run: |
+          ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts \
+            "$VM_USER@$VM_HOST" \
+            "curl -fsS http://127.0.0.1:3001/api/health && \
+             curl -fsS -o /dev/null http://127.0.0.1/ && \
+             echo 'smoke test passed'"

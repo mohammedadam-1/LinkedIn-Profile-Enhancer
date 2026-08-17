@@ -1,0 +1,23 @@
+[Unit]
+Description=LinkedIn Profile Enhancer API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=linkedin
+WorkingDirectory=/opt/linkedin/current/Linkedin-Scraper
+EnvironmentFile=/opt/linkedin/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/env node src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
