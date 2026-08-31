@@ -1,0 +1,43 @@
+services:
+  api:
+    build:
+      context: ./Linkedin-Scraper
+      dockerfile: Dockerfile
+
+    image: linkedin-profile-enhancer-api:latest
+    container_name: linkedin-api
+
+    env_file:
+      - ./Linkedin-Scraper/.env
+
+    environment:
+      API_PORT: "3001"
+
+    ports:
+      - "3001:3001"
+
+    restart: unless-stopped
+
+  worker:
+    image: linkedin-profile-enhancer-api:latest
+    container_name: linkedin-worker
+
+    env_file:
+      - ./Linkedin-Scraper/.env
+
+    environment:
+      CHROME_HEADLESS: "true"
+      CHROME_USER_DATA_DIR: /app/.chrome-profile
+      BROWSER_CDP_URL: http://127.0.0.1:8222
+
+    volumes:
+      - linkedin-chrome-profile-linux:/app/.chrome-profile
+
+    command: ["npm", "run", "start"]
+    ipc: host
+    shm_size: "1gb"
+    restart: "no"
+
+volumes:
+  linkedin-chrome-profile-linux:
+    external: true
