@@ -70,7 +70,7 @@ class SupabaseService {
         this.ensureClient();
         const { data, error } = await this.query(() => this.client
             .from("profiles")
-            .select("id, linkedin_url, display_name, refresh_interval_days, failure_count")
+            .select("id, linkedin_url, display_name, refresh_interval_days")
             .eq("status", "active")
             .lte("next_check_at", new Date().toISOString())
             .order("next_check_at", { ascending: true })
@@ -83,7 +83,7 @@ class SupabaseService {
         this.ensureClient();
         const { data, error } = await this.query(() => this.client
             .from("profiles")
-            .select("id, display_name, linkedin_url, team, status, last_checked_at, failure_count, posts(count)")
+            .select("id, display_name, linkedin_url, team, status, last_checked_at, posts(count)")
             .order("created_at", { ascending: false }));
         if (error) throw error;
         return (data ?? []).map((profile) => ({
@@ -143,23 +143,17 @@ class SupabaseService {
             last_checked_at: checkedAt.toISOString(),
             last_success_at: checkedAt.toISOString(),
             next_check_at: new Date(checkedAt.getTime() + profile.refresh_interval_days * 86_400_000).toISOString(),
-            last_error: null,
-            failure_count: 0,
             updated_at: checkedAt.toISOString(),
         }).eq("id", profile.id));
         if (error) throw error;
     }
 
-    async markProfileFailure(profile, errorMessage) {
+    async deleteProfile(profile) {
         this.ensureClient();
-        const failureCount = profile.failure_count + 1;
-        const retryMinutes = Math.min(360, 5 * 2 ** Math.min(failureCount - 1, 6));
-        const { error } = await this.query(() => this.client.from("profiles").update({
-            last_error: errorMessage.slice(0, 2_000),
-            failure_count: failureCount,
-            next_check_at: new Date(Date.now() + retryMinutes * 60_000).toISOString(),
-            updated_at: new Date().toISOString(),
-        }).eq("id", profile.id));
+        const { error } = await this.query(() => this.client
+            .from("profiles")
+            .delete()
+            .eq("id", profile.id));
         if (error) throw error;
     }
 

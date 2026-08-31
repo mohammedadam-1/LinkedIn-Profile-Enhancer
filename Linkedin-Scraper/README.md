@@ -31,6 +31,8 @@ Sign in and close the window; the session is saved and reused by the worker. If 
 
 `linkedin_url` is required. `display_name`, `team`, `status`, and `refresh_interval_days` are optional. Valid statuses are `active` and `paused`. Re-importing an existing LinkedIn URL updates its profile record instead of creating a duplicate.
 
+Successful profiles are re-scraped on their `refresh_interval_days` schedule. A profile that fails to scrape is deleted automatically along with its stored posts; import it again to retry from scratch.
+
 The service-role key is server-only. Do not place it in a browser application or commit it to Git.
 
 ## Production

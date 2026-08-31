@@ -19,8 +19,8 @@
         llmRequestDelayMs: numberFromEnv("LLM_REQUEST_DELAY_MS", 60_000, 0, 300_000),
         llmTimeoutMs: numberFromEnv("LLM_TIMEOUT_MS", 45_000, 5_000, 300_000),
         browserCdpUrl: process.env.BROWSER_CDP_URL || "http://127.0.0.1:8222",
-chromeUserDataDir: process.env.CHROME_USER_DATA_DIR || "./.chrome-profile",
-        chromeHeadless: (process.env.CHROME_HEADLESS ?? "true") !== "false",
+        chromeUserDataDir: process.env.CHROME_USER_DATA_DIR || "./.chrome-profile",
+        chromeHeadless: process.env.CHROME_HEADLESS,
         chromeStartUrl: process.env.CHROME_START_URL || "about:blank",
     }
 

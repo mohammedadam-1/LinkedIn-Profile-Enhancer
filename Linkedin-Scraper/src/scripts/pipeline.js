@@ -32,8 +32,23 @@ class Run {
                 counters.processed += 1;
                 try {
                     await page.goto(profile.linkedin_url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+                    console.log("CURRENT URL:", page.url());
+                    console.log("PAGE TITLE:", await page.title());
+
+                    const bodyText = await page.locator("body").innerText();
+                    console.log(
+                        "BODY SAMPLE:",
+                        bodyText.slice(0, 1500)
+                    );
+                    
                     const text = page.locator('section[data-testid="carousel"][role="list"]');
-                    await text.waitFor({ timeout: 10_000 });
+                    await text.waitFor({ state: "visible",timeout: 10_000 });
+
+                    await page.screenshot({
+                    path: `/app/debug/profile-${profile.id}.png`,
+                    fullPage: true,
+                    });
+
                     const postText = await text.textContent();
                     const postData = postManager.splitPost(postText || "");
                     const [rawPosts, summaries] = await postManager.managePost(postData);
@@ -43,9 +58,9 @@ class Run {
                     logger.info("profile_processed", { runId, profileId: profile.id, postsStored: posts.length });
                 } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
-                    await database.markProfileFailure(profile, message);
+                    await database.deleteProfile(profile);
                     counters.failed += 1;
-                    logger.error("profile_failed", { runId, profileId: profile.id, error: message });
+                    logger.error("profile_failed_deleted", { runId, profileId: profile.id, linkedinUrl: profile.linkedin_url, error: message });
                 }
                 await database.extendRunLock(lockToken);
             }

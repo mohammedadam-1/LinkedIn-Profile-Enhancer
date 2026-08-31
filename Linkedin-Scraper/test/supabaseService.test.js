@@ -16,7 +16,7 @@ test("toIsoDate returns null for invalid values", () => {
 });
 
 function fakeClient({ profilesData, postsData }) {
-    const calls = { ilikePattern: null };
+    const calls = { ilikePattern: null, deletedId: null };
     const chain = (result) => ({
         select() {
             return {
@@ -35,7 +35,18 @@ function fakeClient({ profilesData, postsData }) {
         calls,
         from(table) {
             if (table === "profiles") {
-                return chain({ data: profilesData, error: null });
+                return {
+                    ...chain({ data: profilesData, error: null }),
+                    delete() {
+                        return {
+                            eq(column, value) {
+                                calls.deletedColumn = column;
+                                calls.deletedId = value;
+                                return Promise.resolve({ data: null, error: null });
+                            },
+                        };
+                    },
+                };
             }
             if (table === "posts") {
                 return {
@@ -100,4 +111,12 @@ test("getProfilePosts matches exact slug over look-alike rows", async () => {
     database.client = fakeClient({ profilesData, postsData: [] });
     const result = await database.getProfilePosts("https://www.linkedin.com/in/foo");
     assert.equal(result.profile.id, "p2");
+});
+
+test("deleteProfile removes the profile row by id", async () => {
+    const client = fakeClient({ profilesData: [], postsData: [] });
+    database.client = client;
+    await database.deleteProfile({ id: "p9" });
+    assert.equal(client.calls.deletedColumn, "id");
+    assert.equal(client.calls.deletedId, "p9");
 });

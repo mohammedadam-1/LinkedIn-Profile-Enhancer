@@ -4,8 +4,6 @@ import multer from "multer";
 import cors from "cors";
 import { parseCsv, buildRecords, importRecords } from "./scripts/csvImport.js";
 import database from "./database/supabaseService.js";
-import chromeStarter from "./playwright/chromeStarter.js";
-import { logger } from "./observability/logger.js";
 
 const app = express();
 app.use(express.json());
@@ -123,10 +121,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const port = Number(process.env.API_PORT || 3001);
     app.listen(port, () => {
         console.log(`Profile import API listening on http://localhost:${port}`);
-    });
-
-    chromeStarter.ensureChrome().catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error("chrome_starter_failed", { error: message });
     });
 }

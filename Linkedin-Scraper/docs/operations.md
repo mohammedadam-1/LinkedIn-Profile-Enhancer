@@ -12,7 +12,7 @@ The worker needs an authenticated Chrome profile started with remote debugging a
 2. Run the newest SQL file in `supabase/migrations/` through the Supabase SQL Editor.
 3. Set environment variables from `.env.example` in the host's secret manager. Never copy `.env` into an image or source control.
 4. Run `npm.cmd run check` and `npm.cmd run preflight`.
-5. Run one controlled job with a small `MAX_PROFILES_PER_RUN`, then inspect `automation_runs`, `profiles.last_error`, and `posts` in Supabase.
+5. Run one controlled job with a small `MAX_PROFILES_PER_RUN`, then inspect `automation_runs` and `posts` in Supabase.
 
 ## Monitoring
 
@@ -21,13 +21,12 @@ The worker emits JSON logs. Forward stdout to the host's log collector and alert
 Check these tables daily:
 
 - `automation_runs`: failed runs, duration, profiles succeeded/failed.
-- `profiles`: increasing `failure_count` or non-empty `last_error`.
+- `profiles`: shrinking row count can indicate profiles removed after scrape failures; correlate with `profile_failed_deleted` log events.
 - `automation_locks`: a lock past its expiry indicates a crashed job; it is automatically reclaimable after expiry.
 
 ## Recovery
 
-- If a profile fails, the worker retries it after 5, 10, 20, 40, 80, 160, then at most every 360 minutes. Successful processing clears the failure count.
-- If Chrome cannot be reached, restore the worker's authenticated Chrome session and rerun. No posts are duplicated because `posts` uses `(profile_id, post_fingerprint)` as its unique key.
+- If a profile fails, it is deleted immediately (including its stored posts); import it again to retry from scratch. Successful profiles keep their `refresh_interval_days` schedule and no posts are duplicated because `posts` uses `(profile_id, post_fingerprint)` as its unique key.
 - If a job is interrupted, wait for `RUN_LOCK_MINUTES` or verify the prior process has stopped before starting another worker.
 
 ## Security
