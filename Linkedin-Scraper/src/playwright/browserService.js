@@ -19,11 +19,12 @@ class BrowserService {
     }
 
     async closeBrowser() {
-        const page = this.page;
+        const browser = this.browser;
         this.context = null;
         this.page = null;
         this.browser = null;
-        if (page && !page.isClosed()) await page.close();
+
+        if (browser) await browser.close()
     }
 }
 
