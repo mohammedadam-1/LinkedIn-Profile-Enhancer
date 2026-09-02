@@ -4,6 +4,11 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), "");
 
+    const buildOutDir =
+        process.env.VITE_BUILD_OUT_DIR ||
+        env.VITE_BUILD_OUT_DIR ||
+        "dist";
+
     return {
         plugins: [react()],
 
@@ -18,7 +23,7 @@ export default defineConfig(({ mode }) => {
         },
 
         build: {
-            outDir: env.VITE_BUILD_OUT_DIR || "dist",
+            outDir: buildOutDir,
             emptyOutDir: true,
         },
     };
